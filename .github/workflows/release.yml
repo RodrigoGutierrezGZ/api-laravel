@@ -1,0 +1,203 @@
+name: Release Management
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g., v1.2.3)'
+        required: true
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+        - production
+        - staging
+
+env:
+  PHP_VERSION: '8.2'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # ==========================================
+  # Build release image
+  # ==========================================
+  build-release:
+    name: 🏗️ Build Release
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      image: ${{ steps.image.outputs.image }}
+      version: ${{ steps.version.outputs.version }}
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📥 Checkout infrastructure
+        uses: actions/checkout@v4
+        with:
+          repository: RodrigoGutierrezGZ/infraestructura
+          path: infrastructure
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🏷️ Get version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "release" ]; then
+            echo "version=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔐 Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🏷️ Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=${{ steps.version.outputs.version }}
+            type=raw,value=latest
+
+      - name: 📦 Build and push release image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: infrastructure/docker/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64
+
+      - name: 📸 Set image output
+        id: image
+        run: echo "image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}" >> $GITHUB_OUTPUT
+
+  # ==========================================
+  # Deploy release
+  # ==========================================
+  deploy-release:
+    name: 🚀 Deploy Release
+    runs-on: ubuntu-latest
+    needs: build-release
+    environment: 
+      name: ${{ github.event.inputs.environment || 'production' }}
+
+    steps:
+      - name: 📥 Checkout infrastructure
+        uses: actions/checkout@v4
+        with:
+          repository: RodrigoGutierrezGZ/infraestructura
+          token: ${{ secrets.DEPLOY_TOKEN }}
+
+      - name: 🐍 Setup Python for Ansible
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: 📦 Install Ansible
+        run: |
+          pip install ansible ansible-core
+          ansible-galaxy install -r ansible/requirements.yml
+
+      - name: 🔐 Setup SSH key
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.PRODUCTION_SSH_KEY }}
+
+      - name: 🚀 Deploy release
+        run: |
+          cd ansible
+          ansible-playbook -i inventory/production playbook.yml \
+            --extra-vars "docker_image=${{ needs.build-release.outputs.image }}" \
+            --extra-vars "app_version=${{ needs.build-release.outputs.version }}" \
+            --extra-vars "environment=production" \
+            --extra-vars "is_release=true" \
+            --vault-password-file <(echo "${{ secrets.ANSIBLE_VAULT_PASSWORD }}")
+
+      - name: 🩺 Post-deployment validation
+        run: |
+          sleep 60
+          
+          # Health check
+          curl -f ${{ secrets.PRODUCTION_URL }}/health
+          
+          # API validation
+          curl -f ${{ secrets.PRODUCTION_URL }}/api/products
+          
+          # Performance check
+          response_time=$(curl -o /dev/null -s -w '%{time_total}' ${{ secrets.PRODUCTION_URL }}/api/products)
+          echo "Response time: ${response_time}s"
+          
+          # Validate response time < 2s
+          if (( $(echo "$response_time > 2.0" | bc -l) )); then
+            echo "❌ Response time too high: ${response_time}s"
+            exit 1
+          fi
+
+      - name: 📢 Notify release success
+        uses: 8398a7/action-slack@v3
+        with:
+          status: success
+          channel: '#releases'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+          text: |
+            🎉 *Release Deployed Successfully!*
+            
+            **Version**: `${{ needs.build-release.outputs.version }}`
+            **Environment**: `${{ github.event.inputs.environment || 'production' }}`
+            **URL**: ${{ secrets.PRODUCTION_URL }}
+            
+            Release notes: ${{ github.event.release.html_url }}
+
+  # ==========================================
+  # Update changelog
+  # ==========================================
+  update-changelog:
+    name: 📝 Update Changelog
+    runs-on: ubuntu-latest
+    needs: deploy-release
+    if: github.event_name == 'release'
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: 📝 Generate changelog
+        uses: orhun/git-cliff-action@v2
+        with:
+          config: cliff.toml
+          args: --verbose
+        env:
+          OUTPUT: CHANGELOG.md
+
+      - name: 📤 Commit changelog
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add CHANGELOG.md
+          git commit -m "docs: update changelog for ${{ github.event.release.tag_name }}" || exit 0
+          git push
