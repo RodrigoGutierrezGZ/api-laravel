@@ -22,7 +22,7 @@ class ProductControllerTest extends TestCase
         $response = $this->getJson('/api/products');
 
         $response->assertStatus(200)
-                ->assertJsonCount(3);
+            ->assertJsonCount(3);
     }
 
     /**
@@ -34,13 +34,13 @@ class ProductControllerTest extends TestCase
             'name' => 'Test Product',
             'description' => 'Test Description',
             'price' => 99.99,
-            'stock' => 10
+            'stock' => 10,
         ];
 
         $response = $this->postJson('/api/products', $productData);
 
         $response->assertStatus(201)
-                ->assertJson($productData);
+            ->assertJson($productData);
 
         $this->assertDatabaseHas('products', $productData);
     }
@@ -55,13 +55,13 @@ class ProductControllerTest extends TestCase
         $response = $this->getJson("/api/products/{$product->id}");
 
         $response->assertStatus(200)
-                ->assertJson([
-                    'id' => $product->id,
-                    'name' => $product->name,
-                    'description' => $product->description,
-                    'price' => $product->price,
-                    'stock' => $product->stock,
-                ]);
+            ->assertJson([
+                'id' => $product->id,
+                'name' => $product->name,
+                'description' => $product->description,
+                'price' => $product->price,
+                'stock' => $product->stock,
+            ]);
     }
 
     /**
@@ -75,13 +75,13 @@ class ProductControllerTest extends TestCase
             'name' => 'Updated Product',
             'description' => 'Updated Description',
             'price' => 149.99,
-            'stock' => 20
+            'stock' => 20,
         ];
 
         $response = $this->putJson("/api/products/{$product->id}", $updatedData);
 
         $response->assertStatus(200)
-                ->assertJson($updatedData);
+            ->assertJson($updatedData);
 
         $this->assertDatabaseHas('products', array_merge(['id' => $product->id], $updatedData));
     }
@@ -96,7 +96,7 @@ class ProductControllerTest extends TestCase
         $response = $this->deleteJson("/api/products/{$product->id}");
 
         $response->assertStatus(200)
-                ->assertJson(['message' => 'Product deleted successfully']);
+            ->assertJson(['message' => 'Product deleted successfully']);
 
         $this->assertDatabaseMissing('products', ['id' => $product->id]);
     }
@@ -109,7 +109,7 @@ class ProductControllerTest extends TestCase
         $response = $this->postJson('/api/products', []);
 
         $response->assertStatus(422)
-                ->assertJsonValidationErrors(['name', 'price', 'stock']);
+            ->assertJsonValidationErrors(['name', 'price', 'stock']);
     }
 
     /**
@@ -120,12 +120,12 @@ class ProductControllerTest extends TestCase
         $invalidData = [
             'name' => '',
             'price' => 'not-a-number',
-            'stock' => 'not-an-integer'
+            'stock' => 'not-an-integer',
         ];
 
         $response = $this->postJson('/api/products', $invalidData);
 
         $response->assertStatus(422)
-                ->assertJsonValidationErrors(['name', 'price', 'stock']);
+            ->assertJsonValidationErrors(['name', 'price', 'stock']);
     }
 }
