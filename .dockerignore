@@ -1,0 +1,51 @@
+# Dependencies (se instalan en build stage)
+vendor/
+node_modules/
+
+# Development files
+.git/
+.github/
+.vscode/
+.idea/
+
+# Testing and development (mantener tests/ para validación)
+storage/logs/
+bootstrap/cache/
+
+# Build artifacts
+/build
+/dist
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Logs
+/logs
+*.log
+storage/logs/*
+
+# Cache
+/cache
+.cache/
+bootstrap/cache/*
+
+# OS generated files
+.DS_Store
+Thumbs.db
+*.tmp
+*.temp
+
+# Documentation and demos
+README.md
+VERIFICATION_CHECKLIST.md
+DOCKER_*.md
+docker-test.ps1
+test.html
+
+# Laravel specific
+storage/app/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*

@@ -6,8 +6,3 @@ parameters:
     paths:
         - app/
         - routes/
-    excludePaths:
-        - app/Http/Middleware/
-    ignoreErrors:
-        # Ignore missing return type declarations for now
-        - '#Method .* has no return type specified#'

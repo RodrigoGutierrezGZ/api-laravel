@@ -1,0 +1,20 @@
+# Dockerfile simplificado para pruebas
+FROM php:8.2-fpm-alpine
+
+# Instalar dependencias básicas
+RUN apk add --no-cache \
+    nginx \
+    supervisor \
+    && docker-php-ext-install pdo_mysql
+
+# Directorio de trabajo
+WORKDIR /var/www/html
+
+# Copiar código de la aplicación
+COPY . .
+
+# Exponer puerto
+EXPOSE 8000
+
+# Comando básico
+CMD ["php-fpm"]

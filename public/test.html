@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pruebas API Laravel - Productos</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; color: #155724; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; color: #721c24; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; color: #0c5460; }
+        button { padding: 10px 15px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .response { background: #f8f9fa; padding: 10px; border-radius: 3px; margin-top: 10px; white-space: pre-wrap; font-family: monospace; }
+        input, textarea { width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 3px; }
+        .form-group { margin: 10px 0; }
+        .required { color: #dc3545; font-weight: bold; }
+        .field-info { font-size: 0.9em; color: #6c757d; margin-top: 2px; }
+        .load-btn { background: #28a745; margin-left: 10px; padding: 5px 10px; font-size: 0.9em; }
+        .validation-error { border-color: #dc3545 !important; background-color: #f8d7da; }
+        .validation-success { border-color: #28a745 !important; background-color: #d4edda; }
+        code { background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-family: 'Courier New', monospace; }
+        ul { margin: 10px 0; padding-left: 20px; }
+        li { margin: 5px 0; }
+        .highlight { background-color: #fff3cd; padding: 10px; border-left: 4px solid #ffc107; margin: 10px 0; }
+        .api-info { background-color: #e2e3e5; padding: 15px; border-radius: 5px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Pruebas Completas de la API Laravel</h1>
+        
+        <div class="test-section info">
+            <h2>📋 Estado del Sistema</h2>
+            <p><strong>Servidor:</strong> <span id="server-status">Verificando...</span></p>
+            <p><strong>Base de datos:</strong> <span id="db-status">Verificando...</span></p>
+            <button onclick="checkSystemStatus()">🔄 Verificar Estado</button>
+        </div>
+
+        <div class="test-section">
+            <h2>📚 Información de la API</h2>
+            <p><strong>Endpoint Base:</strong> <code>http://localhost:8000/api/products</code></p>
+            <p><strong>Campos del Producto:</strong></p>
+            <ul>
+                <li><strong>name</strong> <span class="required">*</span> - Nombre del producto (string, máx. 255 caracteres)</li>
+                <li><strong>price</strong> <span class="required">*</span> - Precio del producto (decimal, mayor a 0)</li>
+                <li><strong>stock</strong> <span class="required">*</span> - Cantidad en inventario (entero, mayor o igual a 0)</li>
+                <li><strong>description</strong> - Descripción del producto (texto opcional)</li>
+            </ul>
+            <p><strong>Códigos de Respuesta:</strong></p>
+            <ul>
+                <li><span style="color: #28a745;">200 OK</span> - Operación exitosa</li>
+                <li><span style="color: #28a745;">201 Created</span> - Producto creado</li>
+                <li><span style="color: #ffc107;">422 Unprocessable Entity</span> - Errores de validación</li>
+                <li><span style="color: #dc3545;">404 Not Found</span> - Producto no encontrado</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h2>📊 1. Listar Productos (GET /api/products)</h2>
+            <button onclick="listProducts()">🔍 Obtener Productos</button>
+            <div id="list-response" class="response"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>➕ 2. Crear Producto (POST /api/products)</h2>
+            <div class="form-group">
+                <label>Nombre: <span class="required">*</span></label>
+                <input type="text" id="create-name" placeholder="Ej: Laptop Gaming" value="Laptop Gaming ASUS" required>
+            </div>
+            <div class="form-group">
+                <label>Precio: <span class="required">*</span></label>
+                <input type="number" id="create-price" placeholder="Ej: 999.99" value="1299.99" step="0.01" min="0" required>
+            </div>
+            <div class="form-group">
+                <label>Stock: <span class="required">*</span></label>
+                <input type="number" id="create-stock" placeholder="Ej: 15" value="25" min="0" required>
+            </div>
+            <div class="form-group">
+                <label>Descripción:</label>
+                <textarea id="create-description" placeholder="Descripción del producto" rows="3">Laptop para gaming de alta gama con procesador Intel i7 y tarjeta gráfica RTX 4060</textarea>
+            </div>
+            <button onclick="createProduct()">➕ Crear Producto</button>
+            <div id="create-response" class="response"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>🔍 3. Ver Producto Específico (GET /api/products/{id})</h2>
+            <div class="form-group">
+                <label>ID del Producto:</label>
+                <input type="number" id="show-id" placeholder="Ej: 1" value="1">
+            </div>
+            <button onclick="showProduct()">👁️ Ver Producto</button>
+            <div id="show-response" class="response"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>✏️ 4. Actualizar Producto (PUT /api/products/{id})</h2>
+            <div class="form-group">
+                <label>ID del Producto: <span class="required">*</span></label>
+                <input type="number" id="update-id" placeholder="Ej: 1" value="1" min="1" required>
+                <button onclick="loadProductForUpdate()" style="background: #28a745; margin-left: 10px;">📥 Cargar Datos</button>
+            </div>
+            <div class="form-group">
+                <label>Nuevo Nombre: <span class="required">*</span></label>
+                <input type="text" id="update-name" placeholder="Nuevo nombre" value="Laptop Gaming ASUS ROG" required>
+            </div>
+            <div class="form-group">
+                <label>Nuevo Precio: <span class="required">*</span></label>
+                <input type="number" id="update-price" placeholder="Nuevo precio" value="1399.99" step="0.01" min="0" required>
+            </div>
+            <div class="form-group">
+                <label>Nuevo Stock: <span class="required">*</span></label>
+                <input type="number" id="update-stock" placeholder="Nuevo stock" value="20" min="0" required>
+            </div>
+            <div class="form-group">
+                <label>Nueva Descripción:</label>
+                <textarea id="update-description" placeholder="Nueva descripción" rows="3">Laptop para gaming profesional con procesador Intel i7, 32GB RAM y tarjeta gráfica RTX 4060 Ti</textarea>
+            </div>
+            <button onclick="updateProduct()">✏️ Actualizar Producto</button>
+            <div id="update-response" class="response"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>❌ 5. Eliminar Producto (DELETE /api/products/{id})</h2>
+            <div class="form-group">
+                <label>ID del Producto:</label>
+                <input type="number" id="delete-id" placeholder="Ej: 1" value="1">
+            </div>
+            <button onclick="deleteProduct()" style="background: #dc3545;">🗑️ Eliminar Producto</button>
+            <div id="delete-response" class="response"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>🧪 6. Pruebas de Validación</h2>
+            <button onclick="testValidation()">⚠️ Probar Validaciones</button>
+            <div id="validation-response" class="response"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>🚀 7. Prueba Completa del Flujo</h2>
+            <button onclick="runCompleteTest()">🎯 Ejecutar Prueba Completa</button>
+            <div id="complete-response" class="response"></div>
+        </div>
+
+        <div class="test-section success">
+            <h2>📈 Estadísticas de Pruebas</h2>
+            <p><strong>Pruebas exitosas:</strong> <span id="success-count">0</span></p>
+            <p><strong>Pruebas fallidas:</strong> <span id="error-count">0</span></p>
+            <p><strong>Tiempo total:</strong> <span id="total-time">0ms</span></p>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://127.0.0.1:8000/api';
+        let successCount = 0;
+        let errorCount = 0;
+        let startTime = Date.now();
+
+        function updateStats() {
+            document.getElementById('success-count').textContent = successCount;
+            document.getElementById('error-count').textContent = errorCount;
+            document.getElementById('total-time').textContent = (Date.now() - startTime) + 'ms';
+        }
+
+        function logResult(elementId, method, url, response, success = true) {
+            const element = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            const statusClass = success ? 'success' : 'error';
+            
+            element.innerHTML = `[${timestamp}] ${method} ${url}
+Status: ${response.status} ${response.statusText}
+Response: ${JSON.stringify(response.data, null, 2)}`;
+            
+            element.className = `response ${statusClass}`;
+            
+            if (success) successCount++;
+            else errorCount++;
+            updateStats();
+        }
+
+        async function makeRequest(method, url, data = null) {
+            try {
+                const options = {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    }
+                };
+                
+                if (data) {
+                    options.body = JSON.stringify(data);
+                }
+
+                const response = await fetch(url, options);
+                const responseData = await response.json();
+                
+                return {
+                    status: response.status,
+                    statusText: response.statusText,
+                    data: responseData
+                };
+            } catch (error) {
+                return {
+                    status: 0,
+                    statusText: 'Network Error',
+                    data: { error: error.message }
+                };
+            }
+        }
+
+        async function checkSystemStatus() {
+            const serverCheck = await makeRequest('GET', `${API_BASE}/products`);
+            document.getElementById('server-status').textContent = 
+                serverCheck.status === 200 ? '✅ Activo' : '❌ Inactivo';
+            
+            document.getElementById('db-status').textContent = 
+                serverCheck.status === 200 ? '✅ Conectada' : '❌ Error de conexión';
+        }
+
+        async function listProducts() {
+            const response = await makeRequest('GET', `${API_BASE}/products`);
+            logResult('list-response', 'GET', '/api/products', response, response.status === 200);
+        }
+
+        async function createProduct() {
+            // Validar campos requeridos
+            const name = document.getElementById('create-name').value.trim();
+            const price = document.getElementById('create-price').value;
+            const stock = document.getElementById('create-stock').value;
+            const description = document.getElementById('create-description').value.trim();
+
+            if (!name || !price || !stock) {
+                alert('Por favor, complete todos los campos obligatorios (marcados con *)');
+                return;
+            }
+
+            const data = {
+                name: name,
+                price: parseFloat(price),
+                stock: parseInt(stock),
+                description: description
+            };
+            
+            const response = await makeRequest('POST', `${API_BASE}/products`, data);
+            logResult('create-response', 'POST', '/api/products', response, response.status === 201);
+            
+            // Si se creó exitosamente, actualizar los IDs de los otros formularios
+            if (response.status === 201 && response.data.data) {
+                const newId = response.data.data.id;
+                document.getElementById('show-id').value = newId;
+                document.getElementById('update-id').value = newId;
+                document.getElementById('delete-id').value = newId;
+            }
+        }
+
+        async function showProduct() {
+            const id = document.getElementById('show-id').value;
+            const response = await makeRequest('GET', `${API_BASE}/products/${id}`);
+            logResult('show-response', 'GET', `/api/products/${id}`, response, response.status === 200);
+        }
+
+        async function updateProduct() {
+            const id = document.getElementById('update-id').value;
+            const name = document.getElementById('update-name').value.trim();
+            const price = document.getElementById('update-price').value;
+            const stock = document.getElementById('update-stock').value;
+            const description = document.getElementById('update-description').value.trim();
+
+            if (!id || !name || !price || !stock) {
+                alert('Por favor, complete todos los campos obligatorios (marcados con *)');
+                return;
+            }
+
+            const data = {
+                name: name,
+                price: parseFloat(price),
+                stock: parseInt(stock),
+                description: description
+            };
+            
+            const response = await makeRequest('PUT', `${API_BASE}/products/${id}`, data);
+            logResult('update-response', 'PUT', `/api/products/${id}`, response, response.status === 200);
+        }
+
+        async function loadProductForUpdate() {
+            const id = document.getElementById('update-id').value;
+            if (!id) {
+                alert('Por favor, ingrese un ID válido');
+                return;
+            }
+
+            const response = await makeRequest('GET', `${API_BASE}/products/${id}`);
+            if (response.status === 200 && response.data.data) {
+                const product = response.data.data;
+                document.getElementById('update-name').value = product.name;
+                document.getElementById('update-price').value = product.price;
+                document.getElementById('update-stock').value = product.stock;
+                document.getElementById('update-description').value = product.description || '';
+                
+                // Indicar éxito visualmente
+                ['update-name', 'update-price', 'update-stock', 'update-description'].forEach(id => {
+                    document.getElementById(id).className = 'validation-success';
+                    setTimeout(() => document.getElementById(id).className = '', 2000);
+                });
+            } else {
+                alert('No se pudo cargar el producto. Verifique el ID.');
+            }
+        }
+
+        async function deleteProduct() {
+            const id = document.getElementById('delete-id').value;
+            const response = await makeRequest('DELETE', `${API_BASE}/products/${id}`);
+            logResult('delete-response', 'DELETE', `/api/products/${id}`, response, response.status === 200);
+        }
+
+        async function testValidation() {
+            let results = '';
+            
+            // Test 1: Crear producto sin datos requeridos
+            const test1 = await makeRequest('POST', `${API_BASE}/products`, {});
+            results += `Test 1 - Sin datos obligatorios: ${test1.status} ${test1.statusText}\\n${JSON.stringify(test1.data, null, 2)}\\n\\n`;
+            
+            // Test 2: Crear producto sin campo stock
+            const test2 = await makeRequest('POST', `${API_BASE}/products`, {
+                name: 'Producto Test',
+                price: 99.99,
+                description: 'Sin stock'
+            });
+            results += `Test 2 - Sin campo stock: ${test2.status} ${test2.statusText}\\n${JSON.stringify(test2.data, null, 2)}\\n\\n`;
+            
+            // Test 3: Crear producto con precio negativo
+            const test3 = await makeRequest('POST', `${API_BASE}/products`, {
+                name: 'Test Precio',
+                price: -50,
+                stock: 10,
+                description: 'Precio negativo'
+            });
+            results += `Test 3 - Precio negativo: ${test3.status} ${test3.statusText}\\n${JSON.stringify(test3.data, null, 2)}\\n\\n`;
+            
+            // Test 4: Crear producto con stock negativo
+            const test4 = await makeRequest('POST', `${API_BASE}/products`, {
+                name: 'Test Stock',
+                price: 99.99,
+                stock: -5,
+                description: 'Stock negativo'
+            });
+            results += `Test 4 - Stock negativo: ${test4.status} ${test4.statusText}\\n${JSON.stringify(test4.data, null, 2)}\\n\\n`;
+            
+            // Test 5: Buscar producto inexistente
+            const test5 = await makeRequest('GET', `${API_BASE}/products/99999`);
+            results += `Test 5 - Producto inexistente: ${test5.status} ${test5.statusText}\\n${JSON.stringify(test5.data, null, 2)}\\n\\n`;
+            
+            // Test 6: Actualizar producto inexistente
+            const test6 = await makeRequest('PUT', `${API_BASE}/products/99999`, {
+                name: 'Test Update',
+                price: 99.99,
+                stock: 10,
+                description: 'Update inexistente'
+            });
+            results += `Test 6 - Actualizar inexistente: ${test6.status} ${test6.statusText}\\n${JSON.stringify(test6.data, null, 2)}`;
+            
+            document.getElementById('validation-response').innerHTML = results;
+            document.getElementById('validation-response').className = 'response info';
+        }
+
+        async function runCompleteTest() {
+            const results = [];
+            const element = document.getElementById('complete-response');
+            element.innerHTML = 'Ejecutando prueba completa...';
+            
+            // 1. Listar productos iniciales
+            const list1 = await makeRequest('GET', `${API_BASE}/products`);
+            results.push(`1. Lista inicial: ${list1.status} (${list1.data.data ? list1.data.data.length : 0} productos)`);
+            
+            // 2. Crear producto
+            const create = await makeRequest('POST', `${API_BASE}/products`, {
+                name: 'Producto de Prueba Completa',
+                price: 99.99,
+                stock: 15,
+                description: 'Producto creado durante la prueba completa del sistema'
+            });
+            results.push(`2. Crear producto: ${create.status} ${create.statusText}`);
+            
+            if (create.status === 201) {
+                const productId = create.data.data.id;
+                
+                // 3. Ver producto creado
+                const show = await makeRequest('GET', `${API_BASE}/products/${productId}`);
+                results.push(`3. Ver producto: ${show.status} ${show.statusText}`);
+                
+                // 4. Actualizar producto
+                const update = await makeRequest('PUT', `${API_BASE}/products/${productId}`, {
+                    name: 'Producto Actualizado',
+                    price: 149.99,
+                    stock: 25,
+                    description: 'Descripción actualizada durante la prueba'
+                });
+                results.push(`4. Actualizar producto: ${update.status} ${update.statusText}`);
+                
+                // 5. Eliminar producto
+                const deleteRes = await makeRequest('DELETE', `${API_BASE}/products/${productId}`);
+                results.push(`5. Eliminar producto: ${deleteRes.status} ${deleteRes.statusText}`);
+                
+                // 6. Verificar eliminación
+                const verify = await makeRequest('GET', `${API_BASE}/products/${productId}`);
+                results.push(`6. Verificar eliminación: ${verify.status} ${verify.statusText}`);
+            }
+            
+            // 7. Lista final
+            const list2 = await makeRequest('GET', `${API_BASE}/products`);
+            results.push(`7. Lista final: ${list2.status} (${list2.data.data ? list2.data.data.length : 0} productos)`);
+            
+            element.innerHTML = results.join('\\n');
+            element.className = 'response success';
+        }
+
+        // Verificar estado del sistema al cargar la página
+        window.onload = function() {
+            checkSystemStatus();
+        };
+    </script>
+</body>
+</html>
