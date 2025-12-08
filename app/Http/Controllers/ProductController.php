@@ -20,11 +20,11 @@ class ProductController extends Controller
      */
     public function store(Request $request)
     {
-        // Validación básica (importante para calidad de código)
+        // Validación completa con restricciones de valor
         $request->validate([
             'name' => 'required|string|max:255',
-            'price' => 'required|numeric',
-            'stock' => 'required|integer',
+            'price' => 'required|numeric|min:0',
+            'stock' => 'required|integer|min:0',
         ]);
 
         $product = Product::create($request->all());
@@ -45,10 +45,11 @@ class ProductController extends Controller
      */
     public function update(Request $request, Product $product)
     {
+        // Validación para actualización parcial (PATCH) o completa (PUT)
         $request->validate([
-            'name' => 'required|string|max:255',
-            'price' => 'required|numeric',
-            'stock' => 'required|integer',
+            'name' => 'sometimes|required|string|max:255',
+            'price' => 'sometimes|required|numeric|min:0',
+            'stock' => 'sometimes|required|integer|min:0',
         ]);
 
         $product->update($request->all());

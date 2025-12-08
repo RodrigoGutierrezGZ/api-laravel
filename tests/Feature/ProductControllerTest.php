@@ -128,4 +128,65 @@ class ProductControllerTest extends TestCase
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['name', 'price', 'stock']);
     }
+
+    /**
+     * Test validación de precio negativo
+     */
+    public function test_product_validation_fails_with_negative_price(): void
+    {
+        $invalidData = [
+            'name' => 'Test Product',
+            'description' => 'Test Description',
+            'price' => -50.00,
+            'stock' => 10,
+        ];
+
+        $response = $this->postJson('/api/products', $invalidData);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['price']);
+    }
+
+    /**
+     * Test validación de stock negativo
+     */
+    public function test_product_validation_fails_with_negative_stock(): void
+    {
+        $invalidData = [
+            'name' => 'Test Product',
+            'description' => 'Test Description',
+            'price' => 99.99,
+            'stock' => -5,
+        ];
+
+        $response = $this->postJson('/api/products', $invalidData);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['stock']);
+    }
+
+    /**
+     * Test actualización parcial con PATCH
+     */
+    public function test_can_partially_update_a_product(): void
+    {
+        $product = Product::factory()->create([
+            'name' => 'Original Name',
+            'price' => 100.00,
+            'stock' => 10,
+        ]);
+
+        $partialData = [
+            'price' => 150.00,
+        ];
+
+        $response = $this->patchJson("/api/products/{$product->id}", $partialData);
+
+        $response->assertStatus(200);
+
+        $product->refresh();
+        $this->assertEquals(150.00, $product->price);
+        $this->assertEquals('Original Name', $product->name);
+        $this->assertEquals(10, $product->stock);
+    }
 }
