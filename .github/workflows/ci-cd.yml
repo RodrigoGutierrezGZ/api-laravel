@@ -227,13 +227,13 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.STAGING_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          eval $(ssh-agent -s)
-          ssh-add ~/.ssh/deploy_key
+          ssh-keyscan -H $(grep ansible_host ansible/inventory/staging | awk '{print $2}' | cut -d'=' -f2) >> ~/.ssh/known_hosts
 
       - name: 🚀 Deploy to staging
         run: |
           cd ansible
           ansible-playbook -i inventory/staging playbook.yml \
+            --private-key ~/.ssh/deploy_key \
             --extra-vars "docker_image=${{ needs.build.outputs.image }}" \
             --extra-vars "app_version=${{ github.sha }}" \
             --extra-vars "environment=staging"
@@ -243,14 +243,14 @@ jobs:
           sleep 30
           curl -f ${{ secrets.STAGING_URL }}/health || exit 1
 
-      - name: 📢 Notify Slack
-        if: always()
-        uses: 8398a7/action-slack@v3
-        with:
-          status: ${{ job.status }}
-          channel: '#deployments'
-          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
-          fields: repo,message,commit,author,action,eventName,ref,workflow
+      # - name: 📢 Notify Slack
+      #   if: always()
+      #   uses: 8398a7/action-slack@v3
+      #   with:
+      #     status: ${{ job.status }}
+      #     channel: '#deployments'
+      #     webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+      #     fields: repo,message,commit,author,action,eventName,ref,workflow
 
   # ==========================================
   # JOB 5: Deploy to Production
@@ -285,18 +285,18 @@ jobs:
       - name: 🔐 Setup SSH key
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.STAGING_SSH_KEY }}" > ~/.ssh/deploy_key
+          echo "${{ secrets.PRODUCTION_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          eval $(ssh-agent -s)
-          ssh-add ~/.ssh/deploy_key
+          ssh-keyscan -H $(grep ansible_host ansible/inventory/production | awk '{print $2}' | cut -d'=' -f2) >> ~/.ssh/known_hosts
 
-      - name: 🚀 Deploy to staging
+      - name: 🚀 Deploy to production
         run: |
           cd ansible
           ansible-playbook -i inventory/production playbook.yml \
+            --private-key ~/.ssh/deploy_key \
             --extra-vars "docker_image=${{ needs.build.outputs.image }}" \
             --extra-vars "app_version=${{ github.sha }}" \
-            --extra-vars "environment=production" \
+            --extra-vars "environment=production"
             --vault-password-file <(echo "${{ secrets.ANSIBLE_VAULT_PASSWORD }}")
 
       - name: 🩺 Health check
@@ -350,10 +350,9 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.PRODUCTION_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          eval $(ssh-agent -s)
-          ssh-add ~/.ssh/deploy_key
+          ssh-keyscan -H $(grep ansible_host ansible/inventory/production | awk '{print $2}' | cut -d'=' -f2) >> ~/.ssh/known_hosts
 
       - name: 🔄 Execute rollback
         run: |
           cd ansible
-          ansible-playbook -i inventory/production rollback.yml
+          ansible-playbook -i inventory/production rollback.yml --private-key ~/.ssh/deploy_key
