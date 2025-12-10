@@ -119,6 +119,12 @@ jobs:
       - name: 📥 Checkout code (for Ansible files)
         uses: actions/checkout@v4
 
+      - name: 📥 Checkout infrastructure repository
+        uses: actions/checkout@v4
+        with:
+          repository: RodrigoGutierrezGZ/infraestructura
+          path: infraestructura
+
       - name: 🐍 Setup Python for Ansible
         uses: actions/setup-python@v4
         with:
@@ -152,7 +158,7 @@ jobs:
       - name: 🚀 Deploy with Ansible
         run: |
           ansible-playbook -i /tmp/ansible-inventory/staging \
-            ../infraestructura/ansible/playbook.yml \
+            infraestructura/ansible/playbook.yml \
             --extra-vars "docker_image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" \
             --extra-vars "app_version=${{ github.sha }}" \
             --extra-vars "environment=staging" \
@@ -184,6 +190,12 @@ jobs:
     steps:
       - name: 📥 Checkout code (for Ansible files)
         uses: actions/checkout@v4
+
+      - name: 📥 Checkout infrastructure repository
+        uses: actions/checkout@v4
+        with:
+          repository: RodrigoGutierrezGZ/infraestructura
+          path: infraestructura
 
       - name: 🐍 Setup Python for Ansible
         uses: actions/setup-python@v4
@@ -218,7 +230,7 @@ jobs:
       - name: 🚀 Deploy with Ansible
         run: |
           ansible-playbook -i /tmp/ansible-inventory/production \
-            ../infraestructura/ansible/playbook.yml \
+            infraestructura/ansible/playbook.yml \
             --extra-vars "docker_image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" \
             --extra-vars "app_version=${{ github.sha }}" \
             --extra-vars "environment=production" \
