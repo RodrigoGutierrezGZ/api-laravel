@@ -41,19 +41,14 @@ COPY --from=vendor /app/vendor/ ./vendor/
 # Crear archivo .env desde .env.example si no existe
 RUN cp .env.example .env || true
 
-# Configurar MySQL por defecto en lugar de SQLite
-RUN sed -i 's/DB_CONNECTION=sqlite/DB_CONNECTION=mysql/' .env && \
-    sed -i 's/# DB_HOST=127.0.0.1/DB_HOST=mysql/' .env && \
-    sed -i 's/# DB_PORT=3306/DB_PORT=3306/' .env && \
-    sed -i 's/# DB_DATABASE=laravel/DB_DATABASE=laravel/' .env && \
-    sed -i 's/# DB_USERNAME=root/DB_USERNAME=sail/' .env && \
-    sed -i 's/# DB_PASSWORD=/DB_PASSWORD=password/' .env
-
 # Crear directorios necesarios primero
 RUN mkdir -p /etc/supervisor/conf.d /var/log/supervisor \
     && mkdir -p /var/www/html/storage/logs \
+    && mkdir -p /var/www/html/storage/framework/cache \
+    && mkdir -p /var/www/html/storage/framework/sessions \
+    && mkdir -p /var/www/html/storage/framework/views \
     && mkdir -p /var/www/html/bootstrap/cache \
-    && chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
+    && chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/database \
     && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
 # Generar APP_KEY para Laravel

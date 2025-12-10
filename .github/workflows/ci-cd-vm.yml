@@ -134,14 +134,14 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.STAGING_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H 34.227.79.104 >> ~/.ssh/known_hosts
+          ssh-keyscan -H 107.23.190.246 >> ~/.ssh/known_hosts
 
       - name: 📝 Create temporary inventory
         run: |
           mkdir -p /tmp/ansible-inventory
           cat > /tmp/ansible-inventory/staging << EOF
           [staging]
-          staging-server ansible_host=34.227.79.104 ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/deploy_key
+          staging-server ansible_host=107.23.190.246 ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/deploy_key
 
           [staging:vars]
           ansible_python_interpreter=/usr/bin/python3
@@ -163,7 +163,7 @@ jobs:
           echo "Waiting for application to start..."
           sleep 30
           echo "Checking health endpoint..."
-          curl -f http://34.227.79.104:8000/api/products || echo "Health check failed, but continuing..."
+          curl -f http://107.23.190.246:8000/api/products || echo "Health check failed, but continuing..."
 
       - name: ✅ Deployment complete
         run: |
@@ -200,14 +200,14 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.PRODUCTION_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H 34.227.79.104 >> ~/.ssh/known_hosts
+          ssh-keyscan -H 107.23.190.246 >> ~/.ssh/known_hosts
 
       - name: 📝 Create temporary inventory
         run: |
           mkdir -p /tmp/ansible-inventory
           cat > /tmp/ansible-inventory/production << EOF
           [production]
-          production-server ansible_host=34.227.79.104 ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/deploy_key
+          production-server ansible_host=107.23.190.246 ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/deploy_key
 
           [production:vars]
           ansible_python_interpreter=/usr/bin/python3
@@ -229,7 +229,7 @@ jobs:
           echo "Waiting for application to start..."
           sleep 60
           echo "Checking health endpoint..."
-          curl -f http://34.227.79.104:8000/api/products
+          curl -f http://107.23.190.246:8000/api/products
 
       - name: ✅ Production deployment complete
         run: |
