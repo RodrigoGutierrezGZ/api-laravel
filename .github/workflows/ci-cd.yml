@@ -223,9 +223,12 @@ jobs:
           ansible-galaxy install -r ansible/requirements.yml
 
       - name: 🔐 Setup SSH key
-        uses: webfactory/ssh-agent@v0.7.0
-        with:
-          ssh-private-key: ${{ secrets.STAGING_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.STAGING_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          eval $(ssh-agent -s)
+          ssh-add ~/.ssh/deploy_key
 
       - name: 🚀 Deploy to staging
         run: |
@@ -280,11 +283,14 @@ jobs:
           ansible-galaxy install -r ansible/requirements.yml
 
       - name: 🔐 Setup SSH key
-        uses: webfactory/ssh-agent@v0.7.0
-        with:
-          ssh-private-key: ${{ secrets.PRODUCTION_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.STAGING_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          eval $(ssh-agent -s)
+          ssh-add ~/.ssh/deploy_key
 
-      - name: 🚀 Deploy to production
+      - name: 🚀 Deploy to staging
         run: |
           cd ansible
           ansible-playbook -i inventory/production playbook.yml \
@@ -340,11 +346,17 @@ jobs:
           ansible-galaxy install -r ansible/requirements.yml
 
       - name: 🔐 Setup SSH key
-        uses: webfactory/ssh-agent@v0.7.0
-        with:
-          ssh-private-key: ${{ secrets.PRODUCTION_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.PRODUCTION_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          eval $(ssh-agent -s)
+          ssh-add ~/.ssh/deploy_key
 
       - name: 🔄 Execute rollback
+          ssh-add ~/.ssh/deploy_key
+
+      - name: 🚀 Deploy to production
         run: |
           cd ansible
           ansible-playbook -i inventory/production rollback.yml
