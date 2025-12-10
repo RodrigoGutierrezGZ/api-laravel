@@ -10,7 +10,7 @@ use App\Models\Product;
 // Crear 5 productos de prueba
 $products = Product::factory()->count(5)->create();
 
-echo "Se crearon " . $products->count() . " productos de prueba:\n";
+echo 'Se crearon '.$products->count().' productos de prueba:\n';
 
 foreach ($products as $product) {
     echo "- {$product->name} - {$product->price} - {$product->description}\n";
