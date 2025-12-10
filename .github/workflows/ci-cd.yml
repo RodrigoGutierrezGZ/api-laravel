@@ -170,16 +170,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 🏷️ Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/rodrigogutierrezgz/api-laravel
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
+      - name: 🏷️ Generate Docker tags
+        id: tags
+        run: |
+          echo "tags=ghcr.io/rodrigogutierrezgz/api-laravel:latest,ghcr.io/rodrigogutierrezgz/api-laravel:${{ github.sha }}" >> $GITHUB_OUTPUT
 
       - name: 📦 Build and push Docker image
         id: build
@@ -188,8 +182,7 @@ jobs:
           context: .
           file: Dockerfile
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.tags.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           platforms: linux/amd64
