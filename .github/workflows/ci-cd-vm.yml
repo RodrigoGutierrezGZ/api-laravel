@@ -17,7 +17,7 @@ on:
 env:
   PHP_VERSION: '8.2'
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: rodrigogutierrezgz/api-laravel
 
 jobs:
   # ==========================================
