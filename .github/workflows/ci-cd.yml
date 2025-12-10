@@ -354,9 +354,6 @@ jobs:
           ssh-add ~/.ssh/deploy_key
 
       - name: 🔄 Execute rollback
-          ssh-add ~/.ssh/deploy_key
-
-      - name: 🚀 Deploy to production
         run: |
           cd ansible
           ansible-playbook -i inventory/production rollback.yml
